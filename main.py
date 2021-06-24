@@ -224,10 +224,10 @@ def clear_rows(grid, locked):
 
 def draw_next_piece(piece: Piece, surface):
     font = pygame.font.SysFont('comicsans', 30)
-    label = font.render('Next Shape', True, (255, 255, 255))
+    label = font.render('Next Piece:', True, (255, 255, 255))
 
-    sx = top_left_x + play_width
-    sy = top_left_y + play_height // 2
+    sx = top_left_x + play_width + 60
+    sy = top_left_y + play_height // 20
     piece_format = piece.shape[piece.rotation % len(piece.shape)]
 
     for i, line in enumerate(piece_format):
@@ -238,8 +238,7 @@ def draw_next_piece(piece: Piece, surface):
                 y_pos_block = sy + i * block_size
                 pygame.draw.rect(surface, piece.color, (x_pos_block, y_pos_block, block_size, block_size), 0)
 
-    surface.blit(label, (sx + 10, sy - 30))
-
+    surface.blit(label, (sx + 10, sy -25))
 
 
 def draw_window(surface, grid):
