@@ -167,10 +167,7 @@ def convert_shape_format(piece):
         row = list(line)
         for j, col in enumerate(row):
             if col == '0':
-                positions.append((piece.x + j, piece.y + i))
-
-    for i, pos in enumerate(positions):
-        positions[i] = (pos[0] - 2, pos[1] - 4)
+                positions.append((piece.x + j - 2, piece.y + i - 4))
 
     return positions
 
@@ -208,7 +205,7 @@ def draw_text_middle(text, size, color, surface):
     pass
 
 
-def draw_grid(surface, grid):
+def draw_grid_lines(surface, grid):
     sx = top_left_x
     sy = top_left_y
 
@@ -218,8 +215,45 @@ def draw_grid(surface, grid):
             pygame.draw.line(surface, (128, 128, 128), (sx + j * block_size, sy), (sx + j * block_size, sy + play_height))
 
 
-def clear_rows(grid, locked):
-    pass
+def clear_rows(grid, locked_positions):
+    row_clear_start = None
+    num_rows_to_clear = 0
+
+    for row in range(len(grid)):
+        row_needs_clearing = True
+        for col in range(len(grid[row])):
+            if grid[row][col] == (0, 0, 0):
+                row_needs_clearing = False
+                break
+
+        if row_needs_clearing:
+            if row_clear_start is None:
+                row_clear_start = row
+            num_rows_to_clear += 1
+
+    if num_rows_to_clear == 0:
+        return locked_positions
+
+    for row_to_clear in range(row_clear_start, row_clear_start + num_rows_to_clear):
+        for col in range(len(grid[row_to_clear])):
+            grid[row_to_clear][col] = (0, 0, 0)
+            del locked_positions[(col, row_to_clear)]
+
+    updated_locked_positions = {}
+    for key, val in locked_positions.items():
+        x = key[0]
+        y = key[1]
+        new_y_loc = key[1] + num_rows_to_clear
+
+        if new_y_loc <= row_clear_start + num_rows_to_clear:
+            grid[new_y_loc][x] = val
+            grid[y][x] = grid[y - 1][x]
+            updated_locked_positions[(x, new_y_loc)] = val
+        else:
+            updated_locked_positions[(x, y)] = val
+
+    locked_positions = updated_locked_positions
+    return locked_positions
 
 
 def draw_next_piece(piece: Piece, surface):
@@ -238,7 +272,7 @@ def draw_next_piece(piece: Piece, surface):
                 y_pos_block = sy + i * block_size
                 pygame.draw.rect(surface, piece.color, (x_pos_block, y_pos_block, block_size, block_size), 0)
 
-    surface.blit(label, (sx + 10, sy -25))
+    surface.blit(label, (sx + 10, sy - 25))
 
 
 def draw_window(surface, grid):
@@ -253,10 +287,10 @@ def draw_window(surface, grid):
 
     for i in range(len(grid)):
         for j in range(len(grid[i])):
-            pygame.draw.rect(surface, grid[i][j], (top_left_x + j * block_size, top_left_y + i * block_size, block_size, block_size), 0)  # look back at this
+            pygame.draw.rect(surface, grid[i][j], (top_left_x + j * block_size, top_left_y + i * block_size, block_size, block_size), 0)  # drawing pieces on grid
 
-    pygame.draw.rect(surface, (255, 0, 0), (top_left_x, top_left_y, play_width, play_height), 5)
-    draw_grid(surface, grid)
+    pygame.draw.rect(surface, (255, 0, 0), (top_left_x, top_left_y, play_width, play_height), 5)    # Outer border
+    draw_grid_lines(surface, grid)
 
 
 def color_piece_on_grid(shape_positions, current_piece, grid):
@@ -333,6 +367,7 @@ def main(main_window):
 
         if change_piece:
             update_locked_positions(current_piece, shape_positions, locked_positions)
+            locked_positions = clear_rows(grid, locked_positions)
             current_piece = next_piece
             next_piece = get_shape()
             change_piece = False
